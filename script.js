@@ -496,8 +496,21 @@ const questions = [
     }
 ];
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
 let currentQuestionIndex = 0;
 let selectedOption = null;
+let wrongQuestions = [];
+let bookmarkedQuestions = [];
+let isReviewMode = false;
+let isBookmarkMode = false;
+let correctAnswersCount = 0;
+let wrongAnswersCount = 0;
 
 const questionTextElement = document.getElementById('question-text');
 const optionsContainer = document.getElementById('options-container');
@@ -507,6 +520,17 @@ const nextBtn = document.getElementById('next-btn');
 const currentQuestionIndexElement = document.getElementById('current-question-index');
 const totalQuestionsElement = document.getElementById('total-questions');
 const totalQuestionsDisplayElement = document.getElementById('total-questions-display');
+const reviewWrongBtn = document.getElementById('review-wrong-btn');
+const statisticsContainer = document.getElementById('statistics-container');
+const correctAnswersCountElement = document.getElementById('correct-answers-count');
+const wrongAnswersCountElement = document.getElementById('wrong-answers-count');
+
+const mainMenu = document.getElementById('main-menu');
+const quizSection = document.getElementById('quiz-section');
+const startQuizBtn = document.getElementById('start-quiz-btn');
+const startReviewBtn = document.getElementById('start-review-btn');
+const viewBookmarksBtn = document.getElementById('view-bookmarks-btn');
+const backToMainMenuBtn = document.getElementById('back-to-main-menu-btn');
 
 function loadQuestion() {
     selectedOption = null;
@@ -514,12 +538,36 @@ function loadQuestion() {
     submitBtn.disabled = false;
     submitBtn.classList.remove('hidden');
     nextBtn.classList.add('hidden');
+    reviewWrongBtn.classList.add('hidden');
+    statisticsContainer.classList.add('hidden');
+
+    const currentQuestions = isReviewMode ? wrongQuestions : (isBookmarkMode ? bookmarkedQuestions : questions);
+
+    if (currentQuestionIndex >= currentQuestions.length) {
+        questionTextElement.textContent = (isReviewMode ? '所有错题已复习完成！' : (isBookmarkMode ? '所有收藏题目已复习完成！' : '所有题目已完成！'));
+        optionsContainer.innerHTML = '';
+        feedbackContainer.innerHTML = '';
+        submitBtn.classList.add('hidden');
+        nextBtn.classList.add('hidden');
+        
+        statisticsContainer.classList.remove('hidden');
+        correctAnswersCountElement.textContent = correctAnswersCount;
+        wrongAnswersCountElement.textContent = wrongAnswersCount;
+
+        if (wrongQuestions.length > 0 && !isReviewMode && !isBookmarkMode) {
+            reviewWrongBtn.classList.remove('hidden');
+        }
+
+        quizSection.classList.add('hidden');
+        mainMenu.classList.remove('hidden');
+        return;
+    }
 
     currentQuestionIndexElement.textContent = currentQuestionIndex + 1;
-    totalQuestionsElement.textContent = questions.length;
-    totalQuestionsDisplayElement.textContent = questions.length;
+    totalQuestionsElement.textContent = currentQuestions.length;
+    totalQuestionsDisplayElement.textContent = currentQuestions.length;
 
-    const question = questions[currentQuestionIndex];
+    const question = currentQuestions[currentQuestionIndex];
     questionTextElement.textContent = question.question;
     optionsContainer.innerHTML = '';
 
@@ -533,16 +581,34 @@ function loadQuestion() {
         button.addEventListener('click', () => {
             if (submitBtn.disabled) return;
 
-            // Deselect others
             Array.from(optionsContainer.children).forEach(child => {
                 child.classList.remove('bg-blue-200', 'border-blue-500');
             });
-            // Select current
             button.classList.add('bg-blue-200', 'border-blue-500');
             selectedOption = button.dataset.option;
         });
         optionsContainer.appendChild(button);
     });
+
+    const bookmarkBtn = document.createElement('button');
+    const isBookmarked = bookmarkedQuestions.some(q => q.question === question.question);
+    bookmarkBtn.innerHTML = isBookmarked ? '&#9733; 已收藏' : '&#9734; 收藏';
+    bookmarkBtn.className = `mt-4 ml-auto px-4 py-2 rounded-lg text-sm ${isBookmarked ? 'bg-yellow-500 text-white' : 'bg-gray-300'} hover:${isBookmarked ? 'bg-yellow-600' : 'bg-gray-400'}`;
+    bookmarkBtn.addEventListener('click', () => {
+        if (isBookmarked) {
+            bookmarkedQuestions = bookmarkedQuestions.filter(q => q.question !== question.question);
+            bookmarkBtn.innerHTML = '&#9734; 收藏';
+            bookmarkBtn.classList.remove('bg-yellow-500', 'text-white');
+            bookmarkBtn.classList.add('bg-gray-300');
+        } else {
+            bookmarkedQuestions.push(question);
+            bookmarkBtn.innerHTML = '&#9733; 已收藏';
+            bookmarkBtn.classList.remove('bg-gray-300');
+            bookmarkBtn.classList.add('bg-yellow-500', 'text-white');
+        }
+        localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarkedQuestions));
+    });
+    optionsContainer.appendChild(bookmarkBtn);
 }
 
 submitBtn.addEventListener('click', () => {
@@ -552,16 +618,24 @@ submitBtn.addEventListener('click', () => {
     }
 
     submitBtn.disabled = true;
-    const question = questions[currentQuestionIndex];
+    const currentQuestions = isReviewMode ? wrongQuestions : (isBookmarkMode ? bookmarkedQuestions : questions);
+    const question = currentQuestions[currentQuestionIndex];
     const correct = selectedOption === question.answer;
 
     if (correct) {
         feedbackContainer.innerHTML = `<div class="text-green-500 font-bold">✓ 回答正确！</div>`;
+        if (isReviewMode) {
+            wrongQuestions = wrongQuestions.filter(q => q !== question);
+        }
+        correctAnswersCount++;
     } else {
         feedbackContainer.innerHTML = `<div class="text-red-500 font-bold">✗ 回答错误！正确答案是: ${question.answer}</div>`;
+        if (!isReviewMode && !isBookmarkMode) {
+            wrongQuestions.push(question);
+        }
+        wrongAnswersCount++;
     }
 
-    // Highlight correct/wrong answers
     Array.from(optionsContainer.children).forEach(child => {
         if(child.dataset.option === question.answer){
             child.classList.add('bg-green-200', 'border-green-500');
@@ -578,15 +652,80 @@ submitBtn.addEventListener('click', () => {
 
 nextBtn.addEventListener('click', () => {
     currentQuestionIndex++;
-    if (currentQuestionIndex < questions.length) {
-        loadQuestion();
-    } else {
-        questionTextElement.textContent = '所有题目已完成！';
-        optionsContainer.innerHTML = '';
-        feedbackContainer.innerHTML = '';
-        submitBtn.classList.add('hidden');
-        nextBtn.classList.add('hidden');
-    }
+    loadQuestion();
 });
 
-window.onload = loadQuestion; 
+reviewWrongBtn.addEventListener('click', () => {
+    if (wrongQuestions.length === 0) {
+        alert('没有错题可以复习！');
+        return;
+    }
+    isReviewMode = true;
+    isBookmarkMode = false;
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+    shuffleArray(wrongQuestions);
+    loadQuestion();
+    reviewWrongBtn.classList.add('hidden');
+    submitBtn.classList.remove('hidden');
+    nextBtn.classList.add('hidden');
+});
+
+startQuizBtn.addEventListener('click', () => {
+    isReviewMode = false;
+    isBookmarkMode = false;
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+    shuffleArray(questions);
+    mainMenu.classList.add('hidden');
+    quizSection.classList.remove('hidden');
+    loadQuestion();
+});
+
+startReviewBtn.addEventListener('click', () => {
+    if (wrongQuestions.length === 0) {
+        alert('没有错题可以复习！');
+        return;
+    }
+    isReviewMode = true;
+    isBookmarkMode = false;
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+    shuffleArray(wrongQuestions);
+    mainMenu.classList.add('hidden');
+    quizSection.classList.remove('hidden');
+    loadQuestion();
+});
+
+viewBookmarksBtn.addEventListener('click', () => {
+    if (bookmarkedQuestions.length === 0) {
+        alert('没有收藏的题目！');
+        return;
+    }
+    isBookmarkMode = true;
+    isReviewMode = false;
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+    loadQuestion();
+    mainMenu.classList.add('hidden');
+    quizSection.classList.remove('hidden');
+});
+
+backToMainMenuBtn.addEventListener('click', () => {
+    quizSection.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+});
+
+window.onload = () => {
+    const storedBookmarks = localStorage.getItem('bookmarkedQuestions');
+    if (storedBookmarks) {
+        bookmarkedQuestions = JSON.parse(storedBookmarks);
+    }
+
+    mainMenu.classList.remove('hidden');
+    quizSection.classList.add('hidden');
+}; 

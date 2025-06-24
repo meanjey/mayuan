@@ -9,22 +9,37 @@
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-4">
         <h1 class="text-2xl font-bold text-center mb-4">刘明杰大爹马原选择题</h1>
-        <div class="text-md text-gray-700 mb-2">当前题目：<span id="current-question-index">1</span> / <span id="total-questions">50</span></div>
-        <div class="text-md text-gray-700 mb-4">总题目数：<span id="total-questions-display">50</span></div>
-        
-        <div id="quiz-container">
-            <div id="question-text" class="text-lg font-semibold mb-4">这里是问题？</div>
-            
-            <div id="options-container" class="space-y-2">
-                <!-- 选项将由 JavaScript 动态生成 -->
-            </div>
+        <div id="main-menu" class="text-center">
+            <button id="start-quiz-btn" class="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 text-lg mb-4">开始答题</button>
+            <button id="start-review-btn" class="w-full bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 text-lg">复习错题</button>
+            <button id="view-bookmarks-btn" class="w-full bg-yellow-500 text-white px-6 py-3 rounded-lg hover:bg-yellow-600 text-lg mt-4">查看收藏</button>
         </div>
 
-        <div id="feedback-container" class="mt-4 text-center"></div>
+        <div id="quiz-section" class="hidden">
+            <div class="text-md text-gray-700 mb-2">当前题目：<span id="current-question-index">1</span> / <span id="total-questions">50</span></div>
+            <div class="text-md text-gray-700 mb-4">总题目数：<span id="total-questions-display">50</span></div>
+            
+            <div id="quiz-container">
+                <div id="question-text" class="text-lg font-semibold mb-4">这里是问题？</div>
+                
+                <div id="options-container" class="space-y-2">
+                    <!-- 选项将由 JavaScript 动态生成 -->
+                </div>
+            </div>
 
-        <div class="mt-6 flex justify-end space-x-4">
-            <button id="submit-btn" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">提交</button>
-            <button id="next-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 hidden">下一题</button>
+            <div id="statistics-container" class="mt-4 text-center hidden">
+                <p>答对题目：<span id="correct-answers-count">0</span></p>
+                <p>答错题目：<span id="wrong-answers-count">0</span></p>
+            </div>
+
+            <div id="feedback-container" class="mt-4 text-center"></div>
+
+            <div class="mt-6 flex justify-end space-x-4">
+                <button id="back-to-main-menu-btn" class="bg-gray-400 text-white px-6 py-2 rounded-lg hover:bg-gray-500">返回主菜单</button>
+                <button id="submit-btn" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600">提交</button>
+                <button id="next-btn" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 hidden">下一题</button>
+                <button id="review-wrong-btn" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 hidden">复习错题</button>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
