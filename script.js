@@ -509,6 +509,7 @@ let wrongQuestions = [];
 let bookmarkedQuestions = [];
 let isReviewMode = false;
 let isBookmarkMode = false;
+let isRandomOrder = true;
 let correctAnswersCount = 0;
 let wrongAnswersCount = 0;
 
@@ -527,10 +528,47 @@ const wrongAnswersCountElement = document.getElementById('wrong-answers-count');
 
 const mainMenu = document.getElementById('main-menu');
 const quizSection = document.getElementById('quiz-section');
-const startQuizBtn = document.getElementById('start-quiz-btn');
+const startQuizRandomBtn = document.getElementById('start-quiz-random-btn');
+const startQuizSequentialBtn = document.getElementById('start-quiz-sequential-btn');
 const startReviewBtn = document.getElementById('start-review-btn');
 const viewBookmarksBtn = document.getElementById('view-bookmarks-btn');
 const backToMainMenuBtn = document.getElementById('back-to-main-menu-btn');
+const continueQuizBtn = document.getElementById('continue-quiz-btn');
+
+function saveQuizState() {
+    const quizState = {
+        currentQuestionIndex,
+        isReviewMode,
+        isBookmarkMode,
+        isRandomOrder,
+        correctAnswersCount,
+        wrongAnswersCount,
+        wrongQuestions,
+        bookmarkedQuestions // 保存书签，以防万一
+    };
+    localStorage.setItem('quizState', JSON.stringify(quizState));
+}
+
+function loadQuizState() {
+    const savedState = localStorage.getItem('quizState');
+    if (savedState) {
+        const quizState = JSON.parse(savedState);
+        currentQuestionIndex = quizState.currentQuestionIndex;
+        isReviewMode = quizState.isReviewMode;
+        isBookmarkMode = quizState.isBookmarkMode;
+        isRandomOrder = quizState.isRandomOrder;
+        correctAnswersCount = quizState.correctAnswersCount;
+        wrongAnswersCount = quizState.wrongAnswersCount;
+        wrongQuestions = quizState.wrongQuestions || [];
+        bookmarkedQuestions = quizState.bookmarkedQuestions || [];
+        return true;
+    }
+    return false;
+}
+
+function clearQuizState() {
+    localStorage.removeItem('quizState');
+}
 
 function loadQuestion() {
     selectedOption = null;
@@ -560,6 +598,7 @@ function loadQuestion() {
 
         quizSection.classList.add('hidden');
         mainMenu.classList.remove('hidden');
+        clearQuizState(); // 测验完成时清除进度
         return;
     }
 
@@ -609,6 +648,7 @@ function loadQuestion() {
         localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarkedQuestions));
     });
     optionsContainer.appendChild(bookmarkBtn);
+    saveQuizState(); // 保存状态
 }
 
 submitBtn.addEventListener('click', () => {
@@ -648,11 +688,13 @@ submitBtn.addEventListener('click', () => {
 
     submitBtn.classList.add('hidden');
     nextBtn.classList.remove('hidden');
+    saveQuizState(); // 保存状态
 });
 
 nextBtn.addEventListener('click', () => {
     currentQuestionIndex++;
     loadQuestion();
+    saveQuizState(); // 保存状态
 });
 
 reviewWrongBtn.addEventListener('click', () => {
@@ -665,6 +707,7 @@ reviewWrongBtn.addEventListener('click', () => {
     currentQuestionIndex = 0;
     correctAnswersCount = 0;
     wrongAnswersCount = 0;
+    clearQuizState(); // 新的复习模式开始，清除旧进度
     shuffleArray(wrongQuestions);
     loadQuestion();
     reviewWrongBtn.classList.add('hidden');
@@ -672,13 +715,28 @@ reviewWrongBtn.addEventListener('click', () => {
     nextBtn.classList.add('hidden');
 });
 
-startQuizBtn.addEventListener('click', () => {
+startQuizRandomBtn.addEventListener('click', () => {
     isReviewMode = false;
     isBookmarkMode = false;
+    isRandomOrder = true;
     currentQuestionIndex = 0;
     correctAnswersCount = 0;
     wrongAnswersCount = 0;
+    clearQuizState(); // 新的随机模式开始，清除旧进度
     shuffleArray(questions);
+    mainMenu.classList.add('hidden');
+    quizSection.classList.remove('hidden');
+    loadQuestion();
+});
+
+startQuizSequentialBtn.addEventListener('click', () => {
+    isReviewMode = false;
+    isBookmarkMode = false;
+    isRandomOrder = false;
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+    clearQuizState(); // 新的顺序模式开始，清除旧进度
     mainMenu.classList.add('hidden');
     quizSection.classList.remove('hidden');
     loadQuestion();
@@ -694,6 +752,7 @@ startReviewBtn.addEventListener('click', () => {
     currentQuestionIndex = 0;
     correctAnswersCount = 0;
     wrongAnswersCount = 0;
+    clearQuizState(); // 新的复习模式开始，清除旧进度
     shuffleArray(wrongQuestions);
     mainMenu.classList.add('hidden');
     quizSection.classList.remove('hidden');
@@ -710,6 +769,7 @@ viewBookmarksBtn.addEventListener('click', () => {
     currentQuestionIndex = 0;
     correctAnswersCount = 0;
     wrongAnswersCount = 0;
+    clearQuizState(); // 新的收藏模式开始，清除旧进度
     loadQuestion();
     mainMenu.classList.add('hidden');
     quizSection.classList.remove('hidden');
@@ -720,10 +780,27 @@ backToMainMenuBtn.addEventListener('click', () => {
     mainMenu.classList.remove('hidden');
 });
 
+continueQuizBtn.addEventListener('click', () => {
+    if (loadQuizState()) {
+        mainMenu.classList.add('hidden');
+        quizSection.classList.remove('hidden');
+        loadQuestion();
+    } else {
+        alert('没有找到保存的进度！');
+        continueQuizBtn.classList.add('hidden'); // 如果没有进度，隐藏按钮
+    }
+});
+
 window.onload = () => {
     const storedBookmarks = localStorage.getItem('bookmarkedQuestions');
     if (storedBookmarks) {
         bookmarkedQuestions = JSON.parse(storedBookmarks);
+    }
+
+    if (localStorage.getItem('quizState')) {
+        continueQuizBtn.classList.remove('hidden');
+    } else {
+        continueQuizBtn.classList.add('hidden');
     }
 
     mainMenu.classList.remove('hidden');
